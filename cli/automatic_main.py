@@ -263,31 +263,44 @@ class HybridMeasurement:
         return farthest_point
 
 
+# (In the main() function)
+
 def main():
     parser = argparse.ArgumentParser(description="Automatically measure box edges with a manual correction option.")
     parser.add_argument('--profile', type=str, required=True, help="Path to the camera calibration profile file.")
     parser.add_argument('--image', type=str, required=True, help="Path to the input image file.")
     parser.add_argument('--marker-size', type=float, required=True, help='Marker size in cm.')
+    
+    # ============================ ADD THIS NEW ARGUMENT ============================
+    parser.add_argument('--border-width', type=float, default=0.0, 
+                        help='(Optional) Width of the white border around the marker in cm. Default: 0.0')
+    # ===============================================================================
+    
     parser.add_argument('--aruco_dict', type=str, default='DICT_5X5_100', help='The ArUco dictionary to use.')
     args = parser.parse_args()
 
-    # Load camera profile and image
+    # (load camera profile, aruco dict, image...)
     camera_matrix, dist_coeffs = utils.load_calibration_profile(args.profile)
     aruco_dict = utils.get_aruco_dictionary(args.aruco_dict)
     image = cv2.imread(args.image)
-    if image is None:
-        print(f"Error: Could not read image at {args.image}")
-        return
+    if image is None: print(f"Error: Could not read image at {args.image}"); return
 
-    # Find the pose of the box from ArUco markers
-    results = pose_estimator.find_box_pose(image, camera_matrix, dist_coeffs, aruco_dict, args.marker_size / 100.0)
-    if not results:
+    # --- Pass the new border_width argument to the pose estimator ---
+    results = pose_estimator.find_box_pose(
+        image, 
+        camera_matrix, 
+        dist_coeffs, 
+        aruco_dict, 
+        args.marker_size / 100.0,
+        args.border_width / 100.0  # Pass the border width in meters
+    )
+    
+    if not results: 
         print("Could not find markers for pose estimation.")
         return
 
-    # Start the measurement process
+    # (The rest of the main function is the same)
     HybridMeasurement(image, results, camera_matrix, dist_coeffs)
-
 
 if __name__ == '__main__':
     main()
