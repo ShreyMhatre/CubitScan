@@ -77,7 +77,6 @@ class HybridMeasurement:
             if endpoint_2d is not None:
                 length_cm, endpoint_3d = self.get_3d_measurement(endpoint_2d, axis)
                 if length_cm is not None:
-                    # Round to 0.1 cm precision
                     self.measurements_cm[axis.capitalize()] = round(length_cm, 1)
                     self.endpoints_3d[axis] = endpoint_3d
             else:
@@ -94,7 +93,6 @@ class HybridMeasurement:
         print(f"\nUser correction for '{closest_axis}' axis.")
         length_cm, endpoint_3d = self.get_3d_measurement(click_point, closest_axis)
         if length_cm is not None:
-            # Round to 0.1 cm precision
             self.measurements_cm[closest_axis.capitalize()] = round(length_cm, 1)
             self.endpoints_3d[closest_axis] = endpoint_3d
             self.project_all_endpoints()
@@ -121,7 +119,7 @@ class HybridMeasurement:
         measurement_order = ['Width', 'Length', 'Height']
         for name in measurement_order:
             if name in self.measurements_cm:
-                length = round(self.measurements_cm[name], 1)  # Round to 0.1 cm
+                length = round(self.measurements_cm[name], 1) 
                 display_texts.append(f"{name}: {length:.1f} cm")
         if all(k in self.measurements_cm for k in ('Width', 'Length', 'Height')):
             w = round(self.measurements_cm['Width'], 1)

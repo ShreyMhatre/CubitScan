@@ -129,6 +129,9 @@ def find_box_pose(frame, camera_matrix, dist_coeffs, aruco_dict, marker_size_met
             # This accounts for any slight misalignment between markers
             compensated_origin = (marker5_corner_3d + marker15_corner_3d) / 2.0
             
+            # Round the origin to 0.1mm precision (0.0001m) for stability
+            compensated_origin = np.round(compensated_origin, decimals=4)
+            
             print(f"\nOrigin calculation:")
             print(f"  - Border width: {border_width_meters*100:.2f} cm")
             print(f"  - Marker 5 corner: {marker5_corner_3d}")
