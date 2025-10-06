@@ -5,6 +5,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 
+# Add the parent directory to the path to find the 'core' module
 try:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from core import utils
@@ -15,13 +16,21 @@ except ImportError:
     sys.exit(1)
 
 
+# --- Tunable Parameters for Automatic Detection ---
 ROI_WIDTH = 40
 CANNY_LOW_THRESHOLD = 50
 CANNY_HIGH_THRESHOLD = 150
 VOLUMETRIC_DIVISOR = 5000
 
+# --- Hough Transform Parameters ---
+HOUGH_THRESHOLD = 20
+HOUGH_MIN_LINE_LENGTH = 30
+HOUGH_MAX_LINE_GAP = 10
+PARALLELISM_THRESHOLD = 0.98
+
 
 def dist_point_to_segment(p, a, b):
+    """Calculates the minimum distance from a point p to a line segment ab."""
     if np.all(a == b): return np.linalg.norm(p - a)
     segment_vec = b - a
     norm = np.linalg.norm(segment_vec)
@@ -77,7 +86,7 @@ class HybridMeasurement:
             if endpoint_2d is not None:
                 length_cm, endpoint_3d = self.get_3d_measurement(endpoint_2d, axis)
                 if length_cm is not None:
-                    self.measurements_cm[axis.capitalize()] = round(length_cm, 1)
+                    self.measurements_cm[axis.capitalize()] = length_cm
                     self.endpoints_3d[axis] = endpoint_3d
             else:
                 print(f" -> Could not automatically find '{axis}' edge. Setting to default.")
@@ -93,7 +102,7 @@ class HybridMeasurement:
         print(f"\nUser correction for '{closest_axis}' axis.")
         length_cm, endpoint_3d = self.get_3d_measurement(click_point, closest_axis)
         if length_cm is not None:
-            self.measurements_cm[closest_axis.capitalize()] = round(length_cm, 1)
+            self.measurements_cm[closest_axis.capitalize()] = length_cm
             self.endpoints_3d[closest_axis] = endpoint_3d
             self.project_all_endpoints()
             self.update_plot()
@@ -101,7 +110,16 @@ class HybridMeasurement:
     def update_plot(self):
         self.ax.clear()
         self.ax.imshow(cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB))
-        axes_params = {'width': {'color': 'blue', 'linewidth': 2},'length': {'color': 'red', 'linewidth': 2},'height': {'color': 'lime', 'linewidth': 2}}
+
+        # ============================ THE CHANGE IS HERE ============================
+        # The color for the 'length' axis has been changed from 'red' to 'yellow'.
+        axes_params = {
+            'width': {'color': 'blue', 'linewidth': 2},
+            'length': {'color': 'yellow', 'linewidth': 2},
+            'height': {'color': 'lime', 'linewidth': 2}
+        }
+        # ==========================================================================
+        
         origin_marker_size = 25
         origin_marker_color = 'cyan'
         origin_marker_edge_color = 'black'
@@ -119,12 +137,12 @@ class HybridMeasurement:
         measurement_order = ['Width', 'Length', 'Height']
         for name in measurement_order:
             if name in self.measurements_cm:
-                length = round(self.measurements_cm[name], 1) 
-                display_texts.append(f"{name}: {length:.1f} cm")
+                length = self.measurements_cm[name]
+                display_texts.append(f"{name}: {length:.2f} cm")
         if all(k in self.measurements_cm for k in ('Width', 'Length', 'Height')):
-            w = round(self.measurements_cm['Width'], 1)
-            l = round(self.measurements_cm['Length'], 1)
-            h = round(self.measurements_cm['Height'], 1)
+            w = self.measurements_cm['Width']
+            l = self.measurements_cm['Length']
+            h = self.measurements_cm['Height']
             volumetric_weight = (w * l * h) / VOLUMETRIC_DIVISOR
             display_texts.append(f"Volumetric Weight: {volumetric_weight:.2f} kg")
         y_pos = text_start_y_pos
@@ -170,17 +188,31 @@ class HybridMeasurement:
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         edges = cv2.Canny(blurred, CANNY_LOW_THRESHOLD, CANNY_HIGH_THRESHOLD)
         masked_edges = cv2.bitwise_and(edges, edges, mask=mask)
-        edge_points = np.argwhere(masked_edges > 0)[:, ::-1]
-        if edge_points.shape[0] < 10:
+        lines = cv2.HoughLinesP(masked_edges, 1, np.pi / 180, HOUGH_THRESHOLD, None,
+                                HOUGH_MIN_LINE_LENGTH, HOUGH_MAX_LINE_GAP)
+        if lines is None:
             return None
-        vectors_from_origin = edge_points - self.origin_2d
-        projection_distances = np.dot(vectors_from_origin, axis_unit_vec_2d)
-        positive_distances = projection_distances[projection_distances > 0]
-        if positive_distances.shape[0] < 10:
+        best_line = None
+        max_length = 0
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            line_vec = np.array([x2 - x1, y2 - y1])
+            line_length = np.linalg.norm(line_vec)
+            if line_length == 0: continue
+            line_unit_vec = line_vec / line_length
+            parallelism = abs(np.dot(line_unit_vec, axis_unit_vec_2d))
+            if parallelism > PARALLELISM_THRESHOLD and line_length > max_length:
+                max_length = line_length
+                best_line = line[0]
+        if best_line is None:
             return None
-        robust_distance = np.percentile(positive_distances, 98)
-        final_endpoint = self.origin_2d + axis_unit_vec_2d * robust_distance
-        return final_endpoint
+        x1, y1, x2, y2 = best_line
+        p1 = np.array([x1, y1])
+        p2 = np.array([x2, y2])
+        dist1 = np.linalg.norm(p1 - self.origin_2d)
+        dist2 = np.linalg.norm(p2 - self.origin_2d)
+        farthest_point = p1 if dist1 > dist2 else p2
+        return farthest_point
 
 
 def main():
