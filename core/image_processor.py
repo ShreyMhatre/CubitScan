@@ -16,10 +16,7 @@ def get_best_contrast_channel(image):
     
     b, g, r = cv2.split(image)
     
-    # ============================ FIX IS HERE ============================
-    # Corrected the typo from COLOR_BGR_GRAY to COLOR_BGR2GRAY
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # =====================================================================
 
     channels = {'blue': b, 'green': g, 'red': r, 'gray': gray}
     max_contrast = 0
@@ -45,10 +42,7 @@ def preprocess_with_clahe(image):
     """
     print("Applying CLAHE pre-processing for detection...")
 
-    # ============================ FIX IS HERE ============================
-    # Corrected the typo from COLOR_BGR_GRAY to COLOR_BGR2GRAY
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # =====================================================================
 
     clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
     enhanced_gray = clahe.apply(gray)

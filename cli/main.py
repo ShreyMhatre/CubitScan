@@ -1,13 +1,9 @@
-# In cli/main.py
-
 import argparse
 import cv2
 import sys
 import os
 import matplotlib.pyplot as plt
 
-# This is a crucial step to allow main.py to find the 'core' module
-# It adds the parent directory of 'cli' (which is the project root 'ASTROLITH') to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Now we can import from our custom modules

@@ -72,12 +72,16 @@ cli/__pycache__/
 # Ignore test output
 test-output/
 
-#static files
+# Ignore generated asset directories
 assets/calibration
 assets/demo
 assets/markers
 assets/profiles
 assets/extras
+
+# Keep README example images available
+!assets/output_check/
+
 demo/
 markers/
 

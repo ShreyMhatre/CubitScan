@@ -60,14 +60,11 @@ def calibrate(image_dir, rows, cols, square_size, view_detections, save_examples
     objpoints = []
     imgpoints = []
     
-    # ============================ FIX IS HERE ============================
-    # Expanded search to include multiple common image formats.
     supported_extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp']
     image_paths = []
     for ext in supported_extensions:
         image_paths.extend(glob.glob(os.path.join(image_dir, ext)))
     image_paths = sorted(image_paths)
-    # =====================================================================
 
     if not image_paths:
         print(f"Error: No supported images (.jpg, .jpeg, .png, .bmp) found in directory '{image_dir}'.")

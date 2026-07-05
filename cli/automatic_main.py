@@ -111,14 +111,11 @@ class HybridMeasurement:
         self.ax.clear()
         self.ax.imshow(cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB))
 
-        # ============================ THE CHANGE IS HERE ============================
-        # The color for the 'length' axis has been changed from 'red' to 'yellow'.
         axes_params = {
             'width': {'color': 'blue', 'linewidth': 2},
             'length': {'color': 'yellow', 'linewidth': 2},
             'height': {'color': 'lime', 'linewidth': 2}
         }
-        # ==========================================================================
         
         origin_marker_size = 25
         origin_marker_color = 'cyan'
